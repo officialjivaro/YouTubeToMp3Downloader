@@ -2,26 +2,12 @@ const express = require('express');
 const ytdl = require('ytdl-core');
 const ffmpegPath = require('ffmpeg-static');
 const ffmpeg = require('fluent-ffmpeg');
-const fs = require('fs');
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
+const { PassThrough } = require('stream');
 const cors = require('cors');
 const app = express();
 
 app.use(express.json());
 app.use(cors());  // Enable CORS
-
-// Ensure the downloads directory exists
-const downloadsDir = path.join(__dirname, 'downloads');
-if (!fs.existsSync(downloadsDir)) {
-    fs.mkdirSync(downloadsDir);
-}
-
-// Serve static files from the 'public' directory
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Serve the converted files
-app.use('/downloads', express.static(path.join(__dirname, 'downloads')));
 
 app.post('/api/convert', async (req, res) => {
     const videoUrl = req.body.url;
@@ -39,37 +25,28 @@ app.post('/api/convert', async (req, res) => {
 
         console.log('Starting audio stream...');
         const stream = ytdl(videoUrl, { quality: 'highestaudio' });
+        const passthrough = new PassThrough();
 
-        const fileName = `${uuidv4()}.mp3`;
-        const filePath = path.join(downloadsDir, fileName);
-        const outputStream = fs.createWriteStream(filePath);
+        res.setHeader('Content-Disposition', `attachment; filename="${info.videoDetails.title}.mp3"`);
+        res.setHeader('Content-Type', 'audio/mpeg');
 
         ffmpeg(stream)
             .setFfmpegPath(ffmpegPath)
             .audioBitrate(128)
             .format('mp3')
             .on('start', () => {
-                console.log(`Starting conversion: ${filePath}`);
+                console.log('Starting conversion');
             })
             .on('end', () => {
-                console.log(`Conversion finished: ${filePath}`);
-                res.status(200).json({ success: true, downloadUrl: `/downloads/${fileName}` });
+                console.log('Conversion finished');
             })
             .on('error', (err) => {
                 console.error('Error during conversion:', err.message);
-                fs.unlink(filePath, (unlinkErr) => {
-                    if (unlinkErr) {
-                        console.error('Error deleting file:', unlinkErr.message);
-                    }
-                });
                 res.status(500).json({ success: false, message: `An error occurred during the conversion process: ${err.message}` });
             })
-            .pipe(outputStream, { end: true });
+            .pipe(passthrough);
 
-        outputStream.on('error', (err) => {
-            console.error('Error writing to file:', err.message);
-            res.status(500).json({ success: false, message: `An error occurred while writing the file: ${err.message}` });
-        });
+        passthrough.pipe(res);
 
     } catch (error) {
         console.error('Error processing video URL:', videoUrl, error.message);
