@@ -1,1 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>YouTube to MP3 Converter</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .converter-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            text-align: center;
+        }
+        .converter-row {
+            margin-bottom: 15px;
+        }
+        .converter-row label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .converter-row input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+        .button {
+            background-color: #66BB6A;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .button:hover {
+            background-color: #4CAF50;
+        }
+        .error-message {
+            color: red;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
 
+    <div class="converter-container">
+        <h2>YouTube to MP3 Converter</h2>
+        <div class="converter-row">
+            <label for="videoUrl">YouTube Video URL:</label>
+            <input type="text" id="videoUrl" placeholder="Enter YouTube video URL">
+        </div>
+        <div class="converter-row">
+            <button class="button" onclick="convertVideo()">Convert</button>
+        </div>
+        <div id="error-message" class="error-message"></div>
+    </div>
+
+    <script>
+        async function convertVideo() {
+            const videoUrl = document.getElementById('videoUrl').value;
+            const errorMessageElement = document.getElementById('error-message');
+            errorMessageElement.textContent = '';  // Clear any previous error message
+
+            if (videoUrl.trim() === '') {
+                errorMessageElement.textContent = 'Please enter a YouTube video URL.';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/convert', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url: videoUrl })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Unknown error occurred');
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'audio.mp3';  // You can set the name as you want
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('Error:', error);
+                errorMessageElement.textContent = 'An error occurred: ' + error.message;
+            }
+        }
+    </script>
+
+</body>
+</html>
