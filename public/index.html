@@ -88,6 +88,7 @@
             }
 
             try {
+                console.log(`Sending request to convert video: ${videoUrl}`);
                 const response = await fetch('/api/convert', {
                     method: 'POST',
                     headers: {
@@ -97,14 +98,20 @@
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
+                    console.log(`Response status: ${response.status}`);
+                    const errorData = await response.json().catch(() => {
+                        throw new Error('An error occurred while processing the request.');
+                    });
+                    console.log(`Error data: ${JSON.stringify(errorData)}`);
                     throw new Error(errorData.message || 'Unknown error occurred');
                 }
 
                 const data = await response.json();
                 if (data.success) {
+                    console.log(`Conversion successful: ${data.downloadUrl}`);
                     downloadLinkElement.innerHTML = `<a href="${data.downloadUrl}" download>Download MP3</a>`;
                 } else {
+                    console.log(`Conversion failed: ${data.message}`);
                     throw new Error(data.message || 'Unknown error occurred');
                 }
             } catch (error) {
