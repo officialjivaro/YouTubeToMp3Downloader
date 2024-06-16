@@ -88,7 +88,6 @@
             }
 
             try {
-                console.log(`Sending request to convert video: ${videoUrl}`);
                 const response = await fetch('/api/convert', {
                     method: 'POST',
                     headers: {
@@ -98,22 +97,22 @@
                 });
 
                 if (!response.ok) {
-                    console.log(`Response status: ${response.status}`);
                     const errorData = await response.json().catch(() => {
                         throw new Error('An error occurred while processing the request.');
                     });
-                    console.log(`Error data: ${JSON.stringify(errorData)}`);
                     throw new Error(errorData.message || 'Unknown error occurred');
                 }
 
-                const data = await response.json();
-                if (data.success) {
-                    console.log(`Conversion successful: ${data.downloadUrl}`);
-                    downloadLinkElement.innerHTML = `<a href="${data.downloadUrl}" download>Download MP3</a>`;
-                } else {
-                    console.log(`Conversion failed: ${data.message}`);
-                    throw new Error(data.message || 'Unknown error occurred');
-                }
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'audio.mp3';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+
             } catch (error) {
                 console.error('Error:', error);
                 errorMessageElement.textContent = 'An error occurred: ' + error.message;
