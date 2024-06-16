@@ -1,5 +1,5 @@
 const express = require('express');
-const ytdl = require('youtube-dl-exec');
+const ytdl = require('ytdl-core');
 const ffmpegPath = require('ffmpeg-static');
 const ffmpeg = require('fluent-ffmpeg');
 const fs = require('fs');
@@ -33,18 +33,13 @@ app.post('/api/convert', async (req, res) => {
     }
 
     try {
-        console.log('Fetching video info...');
-        const videoInfo = await ytdl(videoUrl, { dumpSingleJson: true });
-        console.log('Video info fetched:', videoInfo);
-
-        console.log('Starting audio stream...');
-        const audioStream = ytdl(videoUrl, { format: 'bestaudio', output: '-' });
-
+        const info = await ytdl.getInfo(videoUrl);
+        const stream = ytdl(videoUrl, { quality: 'highestaudio' });
         const fileName = `${uuidv4()}.mp3`;
         const filePath = path.join(downloadsDir, fileName);
         const outputStream = fs.createWriteStream(filePath);
 
-        ffmpeg(audioStream)
+        ffmpeg(stream)
             .setFfmpegPath(ffmpegPath)
             .audioBitrate(128)
             .format('mp3')
