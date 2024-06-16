@@ -10,6 +10,11 @@ const app = express();
 app.use(express.json());
 app.use(cors());  // Enable CORS
 
+// Function to sanitize filenames
+const sanitizeFilename = (filename) => {
+    return filename.replace(/[^a-z0-9_\-]/gi, '_').toLowerCase();
+};
+
 // Serve static files from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -32,11 +37,14 @@ app.post('/api/convert', async (req, res) => {
         const info = await ytdl.getInfo(videoUrl);
         console.log('Video info fetched:', info);
 
+        const videoTitle = sanitizeFilename(info.videoDetails.title);
+        console.log('Sanitized video title:', videoTitle);
+
         console.log('Starting audio stream...');
         const stream = ytdl(videoUrl, { quality: 'highestaudio' });
         const passthrough = new PassThrough();
 
-        res.setHeader('Content-Disposition', `attachment; filename="${info.videoDetails.title}.mp3"`);
+        res.setHeader('Content-Disposition', `attachment; filename="${videoTitle}.mp3"`);
         res.setHeader('Content-Type', 'audio/mpeg');
 
         ffmpeg(stream)
