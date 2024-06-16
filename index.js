@@ -3,11 +3,20 @@ const ytdl = require('ytdl-core');
 const ffmpegPath = require('ffmpeg-static');
 const ffmpeg = require('fluent-ffmpeg');
 const { PassThrough } = require('stream');
+const path = require('path');
 const cors = require('cors');
 const app = express();
 
 app.use(express.json());
 app.use(cors());  // Enable CORS
+
+// Serve static files from the 'public' directory
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve the root URL
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 app.post('/api/convert', async (req, res) => {
     const videoUrl = req.body.url;
