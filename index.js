@@ -13,6 +13,9 @@ app.use(cors());  // Enable CORS
 // Serve static files from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Serve the converted files
+app.use('/downloads', express.static(path.join(__dirname, 'downloads')));
+
 app.post('/api/convert', async (req, res) => {
     const videoUrl = req.body.url;
 
@@ -24,25 +27,16 @@ app.post('/api/convert', async (req, res) => {
     try {
         const info = await ytdl.getInfo(videoUrl);
         const stream = ytdl.downloadFromInfo(info, { quality: 'highestaudio' });
-        const filePath = path.join(__dirname, `${uuidv4()}.mp3`);
+        const fileName = `${uuidv4()}.mp3`;
+        const filePath = path.join(__dirname, 'downloads', fileName);
         const outputStream = fs.createWriteStream(filePath);
 
         ffmpeg(stream)
             .audioBitrate(128)
             .format('mp3')
             .on('end', () => {
-                res.download(filePath, `${info.videoDetails.title}.mp3`, (err) => {
-                    if (err) {
-                        console.error('Error sending file:', err);
-                        res.status(500).json({ success: false, message: 'Error sending file' });
-                    } else {
-                        fs.unlink(filePath, (err) => {
-                            if (err) {
-                                console.error('Error deleting file:', err);
-                            }
-                        });
-                    }
-                });
+                console.log(`File created: ${filePath}`);
+                res.status(200).json({ success: true, downloadUrl: `/downloads/${fileName}` });
             })
             .on('error', (err) => {
                 console.error('Error during conversion:', err);
