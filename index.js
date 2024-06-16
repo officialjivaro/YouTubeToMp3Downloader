@@ -27,8 +27,17 @@ app.post('/api/convert', async (req, res) => {
     const videoUrl = req.body.url;
     console.log('Received request to convert URL:', videoUrl);
 
+    if (!videoUrl || typeof videoUrl !== 'string') {
+        console.error('Invalid request: No URL provided');
+        return res.status(400).json({ success: false, message: 'Invalid request: No URL provided' });
+    }
+
     try {
+        console.log('Fetching video info...');
         const videoInfo = await ytdlp(videoUrl, { dumpSingleJson: true });
+        console.log('Video info fetched:', videoInfo);
+
+        console.log('Starting audio stream...');
         const audioStream = ytdlp(videoUrl, { format: 'bestaudio', output: '-' });
 
         const fileName = `${uuidv4()}.mp3`;
@@ -39,6 +48,9 @@ app.post('/api/convert', async (req, res) => {
             .setFfmpegPath(ffmpegPath)
             .audioBitrate(128)
             .format('mp3')
+            .on('start', () => {
+                console.log(`Starting conversion: ${filePath}`);
+            })
             .on('end', () => {
                 console.log(`Conversion finished: ${filePath}`);
                 res.status(200).json({ success: true, downloadUrl: `/downloads/${fileName}` });
