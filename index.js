@@ -39,6 +39,7 @@ app.post('/api/convert', async (req, res) => {
 
         console.log('Starting audio stream...');
         const stream = ytdl(videoUrl, { quality: 'highestaudio' });
+
         const fileName = `${uuidv4()}.mp3`;
         const filePath = path.join(downloadsDir, fileName);
         const outputStream = fs.createWriteStream(filePath);
@@ -56,9 +57,19 @@ app.post('/api/convert', async (req, res) => {
             })
             .on('error', (err) => {
                 console.error('Error during conversion:', err.message);
+                fs.unlink(filePath, (unlinkErr) => {
+                    if (unlinkErr) {
+                        console.error('Error deleting file:', unlinkErr.message);
+                    }
+                });
                 res.status(500).json({ success: false, message: `An error occurred during the conversion process: ${err.message}` });
             })
             .pipe(outputStream, { end: true });
+
+        outputStream.on('error', (err) => {
+            console.error('Error writing to file:', err.message);
+            res.status(500).json({ success: false, message: `An error occurred while writing the file: ${err.message}` });
+        });
 
     } catch (error) {
         console.error('Error processing video URL:', videoUrl, error.message);
