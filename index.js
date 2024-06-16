@@ -59,6 +59,7 @@ app.post('/api/convert', async (req, res) => {
             })
             .on('error', (err) => {
                 console.error('Error during conversion:', err.message);
+                passthrough.destroy(err);  // Stop streaming on error
                 res.status(500).json({ success: false, message: `An error occurred during the conversion process: ${err.message}` });
             })
             .pipe(passthrough);
