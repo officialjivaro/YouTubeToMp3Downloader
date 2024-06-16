@@ -1,5 +1,6 @@
 const express = require('express');
-const ytdl = require('ytdl-core');
+const ytdlp = require('yt-dlp-exec');
+const ffmpegPath = require('ffmpeg-static');
 const ffmpeg = require('fluent-ffmpeg');
 const fs = require('fs');
 const path = require('path');
@@ -12,7 +13,7 @@ app.use(cors());  // Enable CORS
 
 // Ensure the downloads directory exists
 const downloadsDir = path.join(__dirname, 'downloads');
-if (!fs.existsSync(downloadsDir)){
+if (!fs.existsSync(downloadsDir)) {
     fs.mkdirSync(downloadsDir);
 }
 
@@ -26,19 +27,16 @@ app.post('/api/convert', async (req, res) => {
     const videoUrl = req.body.url;
     console.log('Received request to convert URL:', videoUrl);
 
-    if (!ytdl.validateURL(videoUrl)) {
-        console.log('Invalid YouTube URL:', videoUrl);
-        return res.status(400).json({ success: false, message: 'Invalid YouTube URL' });
-    }
-
     try {
-        const info = await ytdl.getInfo(videoUrl);
-        const stream = ytdl.downloadFromInfo(info, { quality: 'highestaudio' });
+        const videoInfo = await ytdlp(videoUrl, { dumpSingleJson: true });
+        const audioStream = ytdlp(videoUrl, { format: 'bestaudio', output: '-' });
+
         const fileName = `${uuidv4()}.mp3`;
         const filePath = path.join(downloadsDir, fileName);
         const outputStream = fs.createWriteStream(filePath);
 
-        ffmpeg(stream)
+        ffmpeg(audioStream)
+            .setFfmpegPath(ffmpegPath)
             .audioBitrate(128)
             .format('mp3')
             .on('end', () => {
