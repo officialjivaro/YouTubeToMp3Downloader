@@ -41,7 +41,7 @@ app.post('/api/convert', async (req, res) => {
         console.log('Sanitized video title:', videoTitle);
 
         console.log('Starting audio stream...');
-        const stream = ytdl(videoUrl, { quality: 'highestaudio' });
+        const stream = ytdl(videoUrl, { quality: 'highestaudio', filter: 'audioonly' });
         const passthrough = new PassThrough();
 
         res.setHeader('Content-Disposition', `attachment; filename="${videoTitle}.mp3"`);
