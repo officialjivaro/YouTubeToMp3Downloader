@@ -53,6 +53,10 @@
             font-size: 14px;
             margin-top: 10px;
         }
+        .download-link {
+            margin-top: 10px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -67,13 +71,16 @@
             <button class="button" onclick="convertVideo()">Convert</button>
         </div>
         <div id="error-message" class="error-message"></div>
+        <div id="download-link" class="download-link"></div>
     </div>
 
     <script>
         async function convertVideo() {
             const videoUrl = document.getElementById('videoUrl').value;
             const errorMessageElement = document.getElementById('error-message');
+            const downloadLinkElement = document.getElementById('download-link');
             errorMessageElement.textContent = '';  // Clear any previous error message
+            downloadLinkElement.textContent = '';  // Clear any previous download link
 
             if (videoUrl.trim() === '') {
                 errorMessageElement.textContent = 'Please enter a YouTube video URL.';
@@ -81,7 +88,6 @@
             }
 
             try {
-                console.log(`Sending request to convert video: ${videoUrl}`);
                 const response = await fetch('/api/convert', {
                     method: 'POST',
                     headers: {
@@ -91,24 +97,16 @@
                 });
 
                 if (!response.ok) {
-                    console.log(`Response status: ${response.status}`);
-                    const errorData = await response.json().catch(() => {
-                        throw new Error('An error occurred while processing the request.');
-                    });
-                    console.log(`Error data: ${JSON.stringify(errorData)}`);
+                    const errorData = await response.json();
                     throw new Error(errorData.message || 'Unknown error occurred');
                 }
 
-                console.log('Response received, processing the file download.');
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = 'audio.mp3';  // You can set the name as you want
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
+                const data = await response.json();
+                if (data.success) {
+                    downloadLinkElement.innerHTML = `<a href="${data.downloadUrl}" download>Download MP3</a>`;
+                } else {
+                    throw new Error(data.message || 'Unknown error occurred');
+                }
             } catch (error) {
                 console.error('Error:', error);
                 errorMessageElement.textContent = 'An error occurred: ' + error.message;
