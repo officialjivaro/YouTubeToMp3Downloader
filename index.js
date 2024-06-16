@@ -4,9 +4,11 @@ const ffmpeg = require('fluent-ffmpeg');
 const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
+const cors = require('cors');
 const app = express();
 
 app.use(express.json());
+app.use(cors());  // Enable CORS
 
 app.post('/api/convert', async (req, res) => {
     const videoUrl = req.body.url;
